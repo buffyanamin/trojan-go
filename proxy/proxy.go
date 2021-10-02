@@ -61,6 +61,7 @@ func (p *Proxy) relayConnLoop() {
 				}
 				go func(inbound tunnel.Conn) {
 					defer inbound.Close()
+					// Connect to the real address
 					outbound, err := p.sink.DialConn(inbound.Metadata().Address, nil)
 					if err != nil {
 						log.Error(common.NewError("proxy failed to dial connection").Base(err))
@@ -72,7 +73,9 @@ func (p *Proxy) relayConnLoop() {
 						_, err := io.Copy(a, b)
 						errChan <- err
 					}
+					// <--> in --> out <-->
 					go copyConn(inbound, outbound)
+					// <--> in <-- out <-->
 					go copyConn(outbound, inbound)
 					select {
 					case err = <-errChan:
